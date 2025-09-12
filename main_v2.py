@@ -858,5 +858,8 @@ def settings_page():
             )
         )
     )
-
-serve()
+  
+if __name__ == "__main__":
+    # For direct execution - though uvicorn is preferred
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8002)
