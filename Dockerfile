@@ -16,5 +16,5 @@ COPY . .
 # Expose the port your application will listen on
 EXPOSE 8080
 
-# Define the command to run your application
-CMD ["uvicorn", "main_v2:app", "--host", "0.0.0.0", "--port", "8080"]
+# This will look for a module named 'main_v2' inside the 'app' directory.
+CMD ["uvicorn", "app.main_v2:app", "--host", "0.0.0.0", "--port", "8080"]
