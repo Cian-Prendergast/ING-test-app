@@ -6,9 +6,4 @@
 python-fasthtml>=0.6.0
 monsterui>=0.3.0
 uvicorn[standard]>=0.24.0
-python-multipart>=0.0.6
 
-# ───────── HTTP & API Clients ─────────
-aiohttp>=3.9.0
-httpx>=0.26.0
-requests>=2.31.0
