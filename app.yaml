@@ -1,7 +1,13 @@
 runtime: python311
+
+# This is the new, important part
+env_variables:
+  FASTHTML_SESSION_KEY_NAME: /tmp/.sesskey
+
+# This is your existing entrypoint
 entrypoint: uvicorn app.main_v2:app --host 0.0.0.0 --port $PORT
 
-# Add these lines
+# This is your existing scaling configuration
 instance_class: F1
 automatic_scaling:
   min_instances: 0
