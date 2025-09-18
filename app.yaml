@@ -1,3 +1,8 @@
-# In your app.yaml file
 runtime: python311
 entrypoint: uvicorn app.main_v2:app --host 0.0.0.0 --port $PORT
+
+# Add these lines
+instance_class: F1
+automatic_scaling:
+  min_instances: 0
+  max_instances: 1
