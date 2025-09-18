@@ -7,9 +7,13 @@ import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 static_dir = os.path.join(current_dir, 'static')
 
-app, rt = fast_app(hdrs=Theme.orange.headers(mode='light', apex_charts=True, daisy=True), 
-                   static_dir=static_dir,  # Serve static files from the static directory
-                   live=False)
+# Add this line to specify a writable path for the session key
+session_key_path = "/tmp/.sesskey"
+
+app, rt = fast_app(hdrs=Theme.orange.headers(mode='light', apex_charts=True, daisy=True),
+                   static_dir=static_dir,
+                   live=False,
+                   key_fname=session_key_path)
 
 def BrainIcon(tooltip_text):
     """Brain icon with tooltip for AI transparency"""
