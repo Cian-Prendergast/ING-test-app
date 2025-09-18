@@ -9,7 +9,7 @@ static_dir = os.path.join(current_dir, 'static')
 
 app, rt = fast_app(hdrs=Theme.orange.headers(mode='light', apex_charts=True, daisy=True), 
                    static_dir=static_dir,  # Serve static files from the static directory
-                   live=True)
+                   live=False)
 
 def BrainIcon(tooltip_text):
     """Brain icon with tooltip for AI transparency"""
