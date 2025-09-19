@@ -1,5 +1,5 @@
 runtime: python311
-
+service: app-cian-2
 # This is the new, important part
 env_variables:
   FASTHTML_SESSION_KEY_NAME: /tmp/.sesskey
