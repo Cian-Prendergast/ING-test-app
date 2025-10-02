@@ -16,6 +16,7 @@ app, rt = fast_app(hdrs=Theme.orange.headers(mode='light', apex_charts=True, dai
                    live=False,
                    key_fname=session_key_path)
 
+# ===== verification =====
 @rt('/google52b7c19ec95a274e.html')
 def google_verification():
     """Serve Google verification file"""
