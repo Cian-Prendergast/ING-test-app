@@ -2,6 +2,7 @@ from fasthtml.common import *
 from monsterui.all import *
 from fasthtml.svg import *
 import os
+from pathlib import Path
 
 # Get the current directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -14,6 +15,15 @@ app, rt = fast_app(hdrs=Theme.orange.headers(mode='light', apex_charts=True, dai
                    static_dir=static_dir,
                    live=False,
                    key_fname=session_key_path)
+
+@rt('/google52b7c19ec95a274e.html')
+def google_verification():
+    """Serve Google verification file"""
+    verification_file = Path('google52b7c19ec95a274e.html')
+    if verification_file.exists():
+        return open(verification_file, 'r').read()
+    return "google-site-verification: google52b7c19ec95a274e.html"
+  
 
 def BrainIcon(tooltip_text):
     """Brain icon with tooltip for AI transparency"""
