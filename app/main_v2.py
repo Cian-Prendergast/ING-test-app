@@ -83,6 +83,46 @@ def privacy_policy():
             )
         )
     )
+
+
+
+@rt('/terms-of-service')
+def terms_of_service():
+    """Terms of Service page"""
+    return (
+        AppHeader(),
+        Container(
+            Card(
+                H1("Terms of Service"),
+                P("Last updated: December 2024", cls=TextPresets.muted_sm),
+                
+                Div(
+                    H2("Acceptance of Terms"),
+                    P("By accessing and using this service, you accept and agree to be bound by the terms and provision of this agreement."),
+                    
+                    H2("Use License", cls="mt-6"),
+                    P("This application is provided for internal ING business use only. Unauthorized use is prohibited."),
+                    
+                    H2("Service Availability", cls="mt-6"),
+                    P("We strive to provide reliable service but do not guarantee uninterrupted access. The service is provided 'as is' without warranties."),
+                    
+                    H2("User Responsibilities", cls="mt-6"),
+                    P("You agree to:"),
+                    Ul(
+                        Li("Use the service in compliance with applicable laws"),
+                        Li("Not misuse or attempt to compromise the service"),
+                        Li("Keep your account credentials secure")
+                    ),
+                    
+                    H2("Contact", cls="mt-6"),
+                    P("For questions about these terms, contact: legal@ing.nl"),
+                    
+                    cls="space-y-4"
+                ),
+                cls="prose max-w-4xl"
+            )
+        )
+    )
   
 
 def BrainIcon(tooltip_text):
