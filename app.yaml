@@ -1,14 +1,13 @@
 runtime: python311
 service: app-cian-2
 
-# Add this handlers section BEFORE entrypoint
 handlers:
-  # Serve the Google verification file as static
+  # Serve Google verification file
   - url: /google52b7c19ec95a274e.html
     static_files: google52b7c19ec95a274e.html
     upload: google52b7c19ec95a274e.html
   
-  # Let all other requests go to your FastHTML app
+  # All other requests
   - url: /.*
     script: auto
 
