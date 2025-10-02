@@ -1,13 +1,22 @@
 runtime: python311
 service: app-cian-2
-# This is the new, important part
+
+# Add this handlers section BEFORE entrypoint
+handlers:
+  # Serve the Google verification file as static
+  - url: /google52b7c19ec95a274e.html
+    static_files: google52b7c19ec95a274e.html
+    upload: google52b7c19ec95a274e.html
+  
+  # Let all other requests go to your FastHTML app
+  - url: /.*
+    script: auto
+
 env_variables:
   FASTHTML_SESSION_KEY_NAME: /tmp/.sesskey
 
-# This is your existing entrypoint
 entrypoint: uvicorn app.main_v2:app --host 0.0.0.0 --port $PORT
 
-# This is your existing scaling configuration
 instance_class: F1
 automatic_scaling:
   min_instances: 0
