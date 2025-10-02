@@ -75,7 +75,7 @@ def privacy_policy():
                     ),
                     
                     H2("Contact Us", cls="mt-6"),
-                    P("For privacy-related questions, contact us at: privacy@ing.nl"),
+                    P("For privacy-related questions, contact the app admin at: cian.prendergast@deptagency.com"),
                     
                     cls="space-y-4"
                 ),
