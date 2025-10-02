@@ -175,8 +175,11 @@ def AppHeader():
         A("New Campaign", href='/campaign/new', cls="text-white hover:text-orange-200"),
         A("My Campaigns", href='/campaigns', cls="text-white hover:text-orange-200"),
         A("Settings", href='/settings', cls="text-white hover:text-orange-200"),
+        A("Privacy", href='/privacy-policy', cls="text-white hover:text-orange-200 text-sm"),  
+        A("Terms of Service", href='/terms-of-service', cls="text-white hover:text-orange-200 text-sm"), 
+
         brand=DivLAligned(
-            Img(src='logo.png', height=60, width=60),  # Fixed: removed leading slash
+            Img(src='logo.png', height=60, width=60),
             Div(
                 H3("ING Content Studio", cls="text-white"),
                 P("SEO Brief Generator", cls="text-orange-200 text-sm")
