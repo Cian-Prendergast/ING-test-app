@@ -16,7 +16,7 @@ app, rt = fast_app(hdrs=Theme.orange.headers(mode='light', apex_charts=True, dai
                    live=False,
                    key_fname=session_key_path)
 
-# ===== verification =====
+# ===== verification req for google app  =====
 @rt('/google52b7c19ec95a274e.html')
 def google_verification():
     """Serve Google verification file"""
@@ -24,6 +24,65 @@ def google_verification():
     if verification_file.exists():
         return open(verification_file, 'r').read()
     return "google-site-verification: google52b7c19ec95a274e.html"
+
+
+@rt('/privacy-policy')
+def privacy_policy():
+    """Privacy Policy page for OAuth consent"""
+    return (
+        AppHeader(),
+        Container(
+            Card(
+                H1("Privacy Policy"),
+                P("Last updated: December 2024", cls=TextPresets.muted_sm),
+                
+                Div(
+                    H2("Information We Collect"),
+                    P("This application collects and processes the following information:"),
+                    Ul(
+                        Li("Google account email address and basic profile information"),
+                        Li("Campaign and content brief data you create within the application"),
+                        Li("Usage data for improving the service")
+                    ),
+                    
+                    H2("How We Use Your Information", cls="mt-6"),
+                    P("We use the collected information to:"),
+                    Ul(
+                        Li("Authenticate your identity via Google Sign-In"),
+                        Li("Provide SEO content brief generation services"),
+                        Li("Store your campaign data securely"),
+                        Li("Improve our services and user experience")
+                    ),
+                    
+                    H2("Data Storage and Security", cls="mt-6"),
+                    P("Your data is stored securely on Google Cloud Platform infrastructure. We implement appropriate technical and organizational measures to protect your personal information."),
+                    
+                    H2("Data Sharing", cls="mt-6"),
+                    P("We do not sell or share your personal information with third parties except:"),
+                    Ul(
+                        Li("When required by law"),
+                        Li("To protect our rights and safety"),
+                        Li("With your explicit consent")
+                    ),
+                    
+                    H2("Your Rights", cls="mt-6"),
+                    P("You have the right to:"),
+                    Ul(
+                        Li("Access your personal data"),
+                        Li("Request correction of your data"),
+                        Li("Request deletion of your data"),
+                        Li("Withdraw consent at any time")
+                    ),
+                    
+                    H2("Contact Us", cls="mt-6"),
+                    P("For privacy-related questions, contact us at: privacy@ing.nl"),
+                    
+                    cls="space-y-4"
+                ),
+                cls="prose max-w-4xl"
+            )
+        )
+    )
   
 
 def BrainIcon(tooltip_text):
