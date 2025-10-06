@@ -4,7 +4,7 @@ service: app-cian-2
 handlers:
   # Serve Google verification file
   - url: /google52b7c19ec95a274e.html
-    static_files: google52b7c19ec95a274e.html
+    static_files: google52b7c19ec95a274e
     upload: google52b7c19ec95a274e.html
   
   # All other requests
