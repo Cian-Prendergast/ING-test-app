@@ -2,17 +2,17 @@ runtime: python311
 service: app-cian-2
 
 handlers:
-  # Serve Google verification file
   - url: /google52b7c19ec95a274e.html
-    static_files: google52b7c19ec95a274e
+    static_files: google52b7c19ec95a274e.html
     upload: google52b7c19ec95a274e.html
   
-  # All other requests
   - url: /.*
     script: auto
 
 env_variables:
   FASTHTML_SESSION_KEY_NAME: /tmp/.sesskey
+  APP_PASSWORD: "ing123"
+  SECRET_KEY: "a457g68"
 
 entrypoint: uvicorn app.main_v2:app --host 0.0.0.0 --port $PORT
 
