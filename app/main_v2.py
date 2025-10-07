@@ -3,20 +3,101 @@ from monsterui.all import *
 from fasthtml.svg import *
 import os
 from pathlib import Path
+import uuid
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import RedirectResponse
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Get configuration from environment variables
+APP_PASSWORD = os.getenv("APP_PASSWORD", "change-this-password-123")
+SECRET_KEY = os.getenv("SECRET_KEY", "change-this-to-random-string-in-production")
 
 # Get the current directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 static_dir = os.path.join(current_dir, 'static')
-
-# Add this line to specify a writable path for the session key
 session_key_path = "/tmp/.sesskey"
 
-app, rt = fast_app(hdrs=Theme.orange.headers(mode='light', apex_charts=True, daisy=True),
-                   static_dir=static_dir,
-                   live=False,
-                   key_fname=session_key_path)
+# Initialize app with session middleware
+app, rt = fast_app(
+    hdrs=Theme.orange.headers(mode='light', apex_charts=True, daisy=True),
+    static_dir=static_dir,
+    live=False,
+    key_fname=session_key_path,
+    middleware=[
+        Middleware(SessionMiddleware, secret_key=SECRET_KEY)
+    ]
+)
 
-# ===== verification req for google app  =====
+# ===== AUTHENTICATION HELPERS =====
+
+def is_authenticated(request):
+    """Check if user is authenticated via session"""
+    return request.session.get("authenticated", False)
+
+def require_auth(func):
+    """Decorator to require authentication for routes"""
+    async def wrapper(request, *args, **kwargs):
+        if not hasattr(request, 'session'):
+            return RedirectResponse('/login', status_code=302)
+        
+        if is_authenticated(request):
+            import inspect
+            sig = inspect.signature(func)
+            params = list(sig.parameters.keys())
+            
+            func_kwargs = {}
+            if 'request' in params:
+                func_kwargs['request'] = request
+            
+            for i, param_name in enumerate(params[1:], 1):
+                if i <= len(args):
+                    func_kwargs[param_name] = args[i-1]
+            
+            for key, value in kwargs.items():
+                if key in params:
+                    func_kwargs[key] = value
+            
+            return await func(**func_kwargs)
+        
+        return RedirectResponse('/login', status_code=302)
+    return wrapper
+
+def get_or_create_session_id(request):
+    """Get existing session ID or create new one"""
+    if not request.session.get("session_id"):
+        request.session["session_id"] = str(uuid.uuid4())
+    return request.session["session_id"]
+
+def get_short_session_id(session_id):
+    """Get shortened version of session ID for display"""
+    return session_id[:8].upper()
+
+def create_session_banner(session_id):
+    """Create copyable session ID banner"""
+    short_id = get_short_session_id(session_id)
+    
+    return Div(
+        DivFullySpaced(
+            Div(
+                Strong("📋 Session ID: "),
+                Code(short_id, cls="bg-orange-100 px-3 py-1 rounded font-mono"),
+                cls="flex items-center gap-2"
+            ),
+            Button(
+                "📋 Copy Full ID",
+                cls=ButtonT.ghost + " text-sm",
+                onclick=f"navigator.clipboard.writeText('{session_id}'); this.textContent='✅ Copied!'; setTimeout(() => this.textContent='📋 Copy Full ID', 2000);"
+            )
+        ),
+        P("Save this ID to reference your session later", cls=TextPresets.muted_sm),
+        cls="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6"
+    )
+
+# ===== VERIFICATION & LEGAL PAGES (NO AUTH REQUIRED) =====
+
 @rt('/google52b7c19ec95a274e.html')
 def google_verification():
     """Serve Google verification file"""
@@ -25,12 +106,11 @@ def google_verification():
         return open(verification_file, 'r').read()
     return "google-site-verification: google52b7c19ec95a274e.html"
 
-
 @rt('/privacy-policy')
 def privacy_policy():
     """Privacy Policy page for OAuth consent"""
     return (
-        AppHeader(),
+        Title("Privacy Policy - ING Content Studio"),
         Container(
             Card(
                 H1("Privacy Policy"),
@@ -40,7 +120,7 @@ def privacy_policy():
                     H2("Information We Collect"),
                     P("This application collects and processes the following information:"),
                     Ul(
-                        Li("Google account email address and basic profile information"),
+                        Li("Account email address and basic profile information"),
                         Li("Campaign and content brief data you create within the application"),
                         Li("Usage data for improving the service")
                     ),
@@ -48,7 +128,7 @@ def privacy_policy():
                     H2("How We Use Your Information", cls="mt-6"),
                     P("We use the collected information to:"),
                     Ul(
-                        Li("Authenticate your identity via Google Sign-In"),
+                        Li("Authenticate your identity"),
                         Li("Provide SEO content brief generation services"),
                         Li("Store your campaign data securely"),
                         Li("Improve our services and user experience")
@@ -80,17 +160,16 @@ def privacy_policy():
                     cls="space-y-4"
                 ),
                 cls="prose max-w-4xl"
-            )
+            ),
+            A(Button("← Back to App", cls=ButtonT.primary), href="/")
         )
     )
-
-
 
 @rt('/terms-of-service')
 def terms_of_service():
     """Terms of Service page"""
     return (
-        AppHeader(),
+        Title("Terms of Service - ING Content Studio"),
         Container(
             Card(
                 H1("Terms of Service"),
@@ -115,15 +194,93 @@ def terms_of_service():
                     ),
                     
                     H2("Contact", cls="mt-6"),
-                    P("For questions about these terms, contact: legal@ing.nl"),
+                    P("For questions about these terms, contact: cian.prendergast@deptagency.com"),
                     
                     cls="space-y-4"
                 ),
                 cls="prose max-w-4xl"
+            ),
+            A(Button("← Back to App", cls=ButtonT.primary), href="/")
+        )
+    )
+
+# ===== LOGIN/LOGOUT ROUTES =====
+
+@rt("/login")
+async def get(request):
+    """Display login form"""
+    if is_authenticated(request):
+        return RedirectResponse('/', status_code=302)
+    
+    error_msg = request.query_params.get("error")
+    
+    return (
+        Title("Login - ING Content Studio"),
+        Container(
+            DivCentered(
+                Card(
+                    DivCentered(
+                        Img(src='/static/logo.png', height=80, width=80, cls="mb-4"),
+                        H2("ING Content Studio"),
+                        P("SEO Brief Generator", cls=TextPresets.muted_lg + " mb-6")
+                    ),
+                    
+                    Form(
+                        FormSectionDiv(
+                            Input(
+                                type="password",
+                                name="password",
+                                placeholder="Enter password",
+                                cls="w-full",
+                                required=True,
+                                autofocus=True
+                            )
+                        ),
+                        Button(
+                            "🔓 Login",
+                            type="submit",
+                            cls=ButtonT.primary + " w-full"
+                        ),
+                        method="post",
+                        action="/login"
+                    ),
+                    
+                    Alert(
+                        "❌ Incorrect password. Please try again.",
+                        cls=AlertT.error + " mt-4"
+                    ) if error_msg else "",
+                    
+                    Div(
+                        P("Need help? Contact: ", A("cian.prendergast@deptagency.com", href="mailto:cian.prendergast@deptagency.com")),
+                        cls=TextPresets.muted_sm + " text-center mt-4"
+                    ),
+                    
+                    cls="max-w-md p-8"
+                ),
+                cls="min-h-screen"
             )
         )
     )
-  
+
+@rt("/login")
+async def post(request, password: str):
+    """Handle login form submission"""
+    if password == APP_PASSWORD:
+        request.session["authenticated"] = True
+        print(f"✅ User authenticated successfully")
+        return RedirectResponse('/', status_code=302)
+    else:
+        print(f"❌ Failed login attempt")
+        return RedirectResponse('/login?error=1', status_code=302)
+
+@rt("/logout")
+async def get(request):
+    """Handle logout"""
+    request.session.clear()
+    print("🚪 User logged out")
+    return RedirectResponse('/login', status_code=302)
+
+# ===== UI COMPONENTS =====
 
 def BrainIcon(tooltip_text):
     """Brain icon with tooltip for AI transparency"""
@@ -176,10 +333,14 @@ def AppHeader():
         A("My Campaigns", href='/campaigns', cls="text-white hover:text-orange-200"),
         A("Settings", href='/settings', cls="text-white hover:text-orange-200"),
         A("Privacy", href='/privacy-policy', cls="text-white hover:text-orange-200 text-sm"),  
-        A("Terms of Service", href='/terms-of-service', cls="text-white hover:text-orange-200 text-sm"), 
+        A("Terms", href='/terms-of-service', cls="text-white hover:text-orange-200 text-sm"),
+        A(
+            Button("🚪 Logout", cls=ButtonT.ghost + " text-white hover:text-orange-200"),
+            href='/logout'
+        ),
 
         brand=DivLAligned(
-            Img(src='logo.png', height=60, width=60),
+            Img(src='/static/logo.png', height=60, width=60),
             Div(
                 H3("ING Content Studio", cls="text-white"),
                 P("SEO Brief Generator", cls="text-orange-200 text-sm")
@@ -264,7 +425,8 @@ def CampaignSteps(current_step=1):
     
     return Steps(*step_items, cls=(StepsT.horizonal, "mb-8"))
 
-# Step 1: Mode Selection
+# ===== CAMPAIGN STEP FUNCTIONS =====
+
 def step1_mode_selection():
     return Container(
         CampaignSteps(1),
@@ -310,7 +472,6 @@ def step1_mode_selection():
         cls="max-w-4xl mx-auto"
     )
 
-# Step 2: Research Setup
 def step2_research_setup(mode="optimize"):
     settings_card = Card(
         DivLAligned(
@@ -349,7 +510,6 @@ def step2_research_setup(mode="optimize"):
                 cols=2, gap=4
             ),
             
-            # Advanced options (initially hidden)
             Div(
                 H4("Advanced Settings", cls="mt-6 mb-4"),
                 Grid(
@@ -457,7 +617,6 @@ def step2_research_setup(mode="optimize"):
         cls="max-w-4xl mx-auto space-y-6"
     )
 
-# Step 3: AI Analysis Results (Gate #1)
 def step3_analysis():
     return Container(
         LoadingOverlay(),
@@ -469,7 +628,6 @@ def step3_analysis():
         ),
         
         Grid(
-            # SERP Analysis
             Card(
                 DivLAligned(
                     H3("SERP Analysis"),
@@ -499,7 +657,6 @@ def step3_analysis():
                 )
             ),
             
-            # Intent & Page Type
             Card(
                 DivLAligned(
                     H3("Page Recommendations"),
@@ -530,7 +687,6 @@ def step3_analysis():
             cols=2, gap=6
         ),
         
-        # Keyword Expansion
         Card(
             DivLAligned(
                 H3("Keyword Expansion"),
@@ -573,7 +729,6 @@ def step3_analysis():
         cls="max-w-6xl mx-auto space-y-6"
     )
 
-# Step 4: Brief Review & Edit (Collapsible Cards)
 def step4_brief_edit():
     return Container(
         CampaignSteps(4),
@@ -585,9 +740,7 @@ def step4_brief_edit():
             )
         ),
         
-        # Collapsible sections using Accordion
         Accordion(
-            # Basic Information
             AccordionItem(
                 "Basic Information & Strategy",
                 Grid(
@@ -637,7 +790,6 @@ def step4_brief_edit():
                 )
             ),
             
-            # SEO Elements
             AccordionItem(
                 "SEO Elements",
                 Grid(
@@ -675,7 +827,6 @@ def step4_brief_edit():
                 )
             ),
             
-            # Content Structure
             AccordionItem(
                 "Content Structure & Headers",
                 FormSectionDiv(
@@ -725,7 +876,6 @@ Structuur per sectie:
                 )
             ),
             
-            # Competitor Insights
             AccordionItem(
                 "Competitor Analysis & Opportunities",
                 Grid(
@@ -764,7 +914,6 @@ Structuur per sectie:
                 )
             ),
             
-            # FAQ & Internal Links
             AccordionItem(
                 "FAQ & Internal Linking",
                 Grid(
@@ -804,7 +953,6 @@ Welke bedrijven hebben een AVB verplicht?""",
             )
         ),
         
-        # Action buttons
         DivFullySpaced(
             A(Button("← Back to Analysis", cls=ButtonT.ghost), href="/campaign/step3"),
             DivLAligned(
@@ -816,7 +964,6 @@ Welke bedrijven hebben een AVB verplicht?""",
         cls="max-w-6xl mx-auto space-y-6"
     )
 
-# Step 5: Export Complete
 def step5_complete():
     return Container(
         CampaignSteps(5),
@@ -860,12 +1007,19 @@ def step5_complete():
         )
     )
 
-@rt
-def index():
-    """Dashboard - Landing page"""
+# ===== PROTECTED ROUTES =====
+
+@rt("/")
+@require_auth
+async def get(request):
+    """Dashboard - Landing page (protected)"""
+    session_id = get_or_create_session_id(request)
+    
     return (
         AppHeader(),
         Container(
+            create_session_banner(session_id),
+            
             DivFullySpaced(
                 Div(
                     H1("SEO Performance Dashboard"),
@@ -927,33 +1081,39 @@ def index():
         LoadingOverlay()
     )
 
-# Campaign routes
 @rt('/campaign/new')
-def new_campaign():
+@require_auth
+async def get(request):
     return AppHeader(), step1_mode_selection()
 
-@rt('/campaign/step1')  
-def campaign_step1():
+@rt('/campaign/step1')
+@require_auth  
+async def get(request):
     return AppHeader(), step1_mode_selection()
 
 @rt('/campaign/step2')
-def campaign_step2(mode: str = "optimize"):
+@require_auth
+async def get(request, mode: str = "optimize"):
     return AppHeader(), step2_research_setup(mode)
 
 @rt('/campaign/step3')
-def campaign_step3():
+@require_auth
+async def get(request):
     return AppHeader(), step3_analysis()
 
-@rt('/campaign/step4') 
-def campaign_step4():
+@rt('/campaign/step4')
+@require_auth 
+async def get(request):
     return AppHeader(), step4_brief_edit()
 
 @rt('/campaign/step5')
-def campaign_step5():
+@require_auth
+async def get(request):
     return AppHeader(), step5_complete()
 
 @rt('/campaigns')
-def campaigns_list():
+@require_auth
+async def get(request):
     return (
         AppHeader(),
         Container(
@@ -965,7 +1125,8 @@ def campaigns_list():
     )
 
 @rt('/settings')
-def settings_page():
+@require_auth
+async def get(request):
     return (
         AppHeader(),
         Container(
@@ -977,6 +1138,5 @@ def settings_page():
     )
 
 if __name__ == "__main__":
-    # For direct execution - though uvicorn is preferred
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8002)
